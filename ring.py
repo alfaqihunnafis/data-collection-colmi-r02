@@ -231,8 +231,9 @@ async def select_device():
     return None
 
 # Main
-async def main(duration, label, columns, resample_ms, plot, ei_upload):
-    """Main function with specified duration (seconds) for the reading."""
+# Main
+async def main(label, columns, resample_ms, plot, ei_upload):
+    """Main function that runs continuously until interrupted."""
     device_address = load_device_address()
     if not device_address:
         selected_device = await select_device()
@@ -259,11 +260,24 @@ async def main(duration, label, columns, resample_ms, plot, ei_upload):
         await send_data_array(client, ENABLE_RAW_SENSOR_CMD, "RXTX")
 
         try:
-            await asyncio.sleep(duration)  # Keep running for the specified duration
+            print("\n" + "="*40)
+            print("▶ PENGAMBILAN DATA SEDANG BERJALAN...")
+            print("="*40)
+            # Loop tanpa henti sampai user menekan Ctrl+C
+            while True:
+                await asyncio.sleep(1)  
+        except asyncio.CancelledError:
+            # Ditangkap ketika proses dihentikan (Ctrl+C)
+            pass
         finally:
-            await send_data_array(client, DISABLE_RAW_SENSOR_CMD, "RXTX")
+            # Pengecekan aman untuk menghentikan sensor meskipun dibatalkan
+            try:
+                await send_data_array(client, DISABLE_RAW_SENSOR_CMD, "RXTX")
+            except:
+                pass
+            
             csv_file.close()
-            print(f"Data saved to {filename}")
+            print(f"\n✅ Data berhasil disimpan ke {filename}")
 
             if resample_ms:
                 resampled_output_path = os.path.join("resampled", f"{label}.{os.path.basename(filename)}") if label else f"resampled/{os.path.basename(filename)}"
@@ -285,8 +299,7 @@ async def main(duration, label, columns, resample_ms, plot, ei_upload):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Bluetooth ring data logger")
-    parser.add_argument("--duration", type=int, default=30, help="Duration in seconds to run the logger")
-    parser.add_argument("--label", type=str, help="Label for the dataset")
+    # Argumen --duration dan --label dihapus karena akan diinput manual
     parser.add_argument("--axis", type=str, help="Columns to include in resampling and plotting, separated by commas")
     parser.add_argument("--resample", type=int, default=20, help="Resampling rate in milliseconds")
     parser.add_argument("--plot", action="store_true", help="Plot the selected columns")
@@ -295,4 +308,17 @@ if __name__ == "__main__":
     args = parser.parse_args()
     columns = args.axis.split(",") if args.axis else ["accX", "accY", "accZ", "ppg", "spO2"]
 
-    asyncio.run(main(args.duration, args.label, columns, args.resample, args.plot, args.ei_upload))
+    # --- INPUT INTERAKTIF ---
+    label = input("Tentukan label = ")
+    
+    print("\nStart sekarang?")
+    print("Petunjuk Penggunaan:")
+    print("▶ Tekan tombol [ENTER] untuk MEMULAI pengambilan data.")
+    print("⏹ Tekan tombol [Ctrl + C] di terminal/keyboard untuk BERHENTI (stop) pengambilan data.")
+    input("\n(Tekan ENTER jika Anda sudah siap...)")
+
+    try:
+        # Panggil fungsi main tanpa parameter duration
+        asyncio.run(main(label, columns, args.resample, args.plot, args.ei_upload))
+    except KeyboardInterrupt:
+        print("\n\n⏹ Proses dihentikan oleh user. Menyimpan dan memproses data...")
