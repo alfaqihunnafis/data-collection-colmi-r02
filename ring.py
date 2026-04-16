@@ -231,7 +231,6 @@ async def select_device():
     return None
 
 # Main
-# Main
 async def main(label, columns, resample_ms, plot, ei_upload):
     """Main function that runs continuously until interrupted."""
     device_address = load_device_address()
@@ -255,22 +254,31 @@ async def main(label, columns, resample_ms, plot, ei_upload):
 
         await asyncio.sleep(2)  # Ensure notifications are set up
 
+        # --- INPUT INTERAKTIF PINDAH KE SINI ---
+        print("\n✅ Perangkat berhasil terhubung dan siap!")
+        print("Petunjuk Penggunaan:")
+        print("▶ Tekan tombol [ENTER] untuk MEMULAI pengambilan data.")
+        print("⏹ Tekan tombol [Ctrl + C] di terminal/keyboard untuk BERHENTI (stop).")
+        
+        # Kita gunakan run_in_executor agar tidak memblokir/memutuskan koneksi Bluetooth
+        loop = asyncio.get_running_loop()
+        await loop.run_in_executor(None, input, "\n(Tekan ENTER jika Anda sudah siap...)")
+
+        print("\n" + "="*40)
+        print("▶ PENGAMBILAN DATA SEDANG BERJALAN...")
+        print("="*40)
+
+        # Perintah menyalakan sensor baru dikirim SETELAH Anda menekan ENTER
         await send_data_array(client, BATTERY_CMD, "RXTX")
         await send_data_array(client, SET_UNITS_METRICS, "RXTX")
         await send_data_array(client, ENABLE_RAW_SENSOR_CMD, "RXTX")
 
         try:
-            print("\n" + "="*40)
-            print("▶ PENGAMBILAN DATA SEDANG BERJALAN...")
-            print("="*40)
-            # Loop tanpa henti sampai user menekan Ctrl+C
             while True:
-                await asyncio.sleep(1)  
+                await asyncio.sleep(1)
         except asyncio.CancelledError:
-            # Ditangkap ketika proses dihentikan (Ctrl+C)
             pass
         finally:
-            # Pengecekan aman untuk menghentikan sensor meskipun dibatalkan
             try:
                 await send_data_array(client, DISABLE_RAW_SENSOR_CMD, "RXTX")
             except:
@@ -295,11 +303,10 @@ async def main(label, columns, resample_ms, plot, ei_upload):
                     if not api_key:
                         api_key = input("Please enter your Edge Impulse API Key: ")
                         save_api_key(api_key)
-                    upload_to_edge_impulse(resampled_output_path, label or "unlabeled", api_key, metadata=metadata) 
+                    upload_to_edge_impulse(resampled_output_path, label or "unlabeled", api_key, metadata=metadata)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Bluetooth ring data logger")
-    # Argumen --duration dan --label dihapus karena akan diinput manual
     parser.add_argument("--axis", type=str, help="Columns to include in resampling and plotting, separated by commas")
     parser.add_argument("--resample", type=int, default=20, help="Resampling rate in milliseconds")
     parser.add_argument("--plot", action="store_true", help="Plot the selected columns")
@@ -308,17 +315,12 @@ if __name__ == "__main__":
     args = parser.parse_args()
     columns = args.axis.split(",") if args.axis else ["accX", "accY", "accZ", "ppg", "spO2"]
 
-    # --- INPUT INTERAKTIF ---
+    # Input label tetap di awal
     label = input("Tentukan label = ")
     
-    print("\nStart sekarang?")
-    print("Petunjuk Penggunaan:")
-    print("▶ Tekan tombol [ENTER] untuk MEMULAI pengambilan data.")
-    print("⏹ Tekan tombol [Ctrl + C] di terminal/keyboard untuk BERHENTI (stop) pengambilan data.")
-    input("\n(Tekan ENTER jika Anda sudah siap...)")
+    print("\n⏳ Sedang menghubungkan ke perangkat cincin, mohon tunggu...")
 
     try:
-        # Panggil fungsi main tanpa parameter duration
         asyncio.run(main(label, columns, args.resample, args.plot, args.ei_upload))
     except KeyboardInterrupt:
         print("\n\n⏹ Proses dihentikan oleh user. Menyimpan dan memproses data...")
