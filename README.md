@@ -32,6 +32,27 @@ This Python script, `ring.py`, logs raw sensor data from a [Colmi R02 ring](http
 python ring.py --duration <duration_in_seconds>
 ```
 
+Cara usage baru dengan:
+- Menghubungkan ke perangkat terlebih dahulu sebelum memulai perekaman.
+- Memasukkan label data langsung saat skrip dijalankan.
+- **Kontrol Manual**: 
+    - Tekan `ENTER` untuk mulai merekam.
+    - Tekan `CTRL+C` untuk berhenti merekam.
+
+```bash
+python ring.py --axis accX,accY,accZ,ppg --resample 10 --plot
+```
+Langkah-langkah Jalannya Skrip:
+1. Input Label: Skrip akan meminta Anda memasukkan label (misalnya: berjalan, diam, atau lari).
+2. Proses Koneksi: Skrip akan mencari dan menghubungkan ke cincin Bluetooth Anda.
+3. Standby: Setelah terhubung, skrip akan menampilkan pesan konfirmasi dan instruksi. Di tahap ini, sensor cincin belum menyala.
+4. Start: Tekan tombol [ENTER] jika Anda sudah siap memulai aktivitas. Sensor akan aktif dan data mulai direkam.
+5. Stop: Jika sudah selesai, tekan [Ctrl + C] di keyboard Anda. Skrip akan otomatis:
+   - Mematikan sensor cincin.
+   - Menyimpan data mentah ke file .csv.
+   - Melakukan resampling (jika argumen --resample digunakan).
+   - Menampilkan grafik hasil rekaman (jika argumen --plot digunakan).
+
 *Notes: When running the script for the first time, it will ask you to select your ring. The address will be stored in a `config.json` file.*
 
 ```
